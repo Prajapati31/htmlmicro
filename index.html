@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Sender and Receiver</title>
+</head>
+<body>
+    <h1>File Sender and Receiver</h1>
+    <h2>Sender</h2>
+    <form id="senderForm" enctype="multipart/form-data">
+        <input type="file" name="file" id="senderFileInput">
+        <button type="submit">Send</button>
+    </form>
+    <div id="senderMessage"></div>
+
+    <h2>Receiver</h2>
+    <div id="receiverChunks"></div>
+
+    <script>
+        document.getElementById('senderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var senderFileInput = document.getElementById('senderFileInput');
+            var senderFile = senderFileInput.files[0];
+
+            if (!senderFile) {
+                document.getElementById('senderMessage').textContent = 'Please select a file.';
+                return;
+            }
+
+            var senderFormData = new FormData();
+            senderFormData.append('file', senderFile);
+
+            var senderXhr = new XMLHttpRequest();
+            senderXhr.open('POST', 'http://localhost:8080/', true); // Update the URL to match the sender server address
+            senderXhr.onload = function() {
+                if (senderXhr.status === 200) {
+                    document.getElementById('senderMessage').textContent = 'File sent successfully.';
+                } else {
+                    document.getElementById('senderMessage').textContent = 'Error sending file.';
+                }
+            };
+            senderXhr.send(senderFormData);
+        });
+
+        function pollReceiverChunks() {
+            var receiverXhr = new XMLHttpRequest();
+            receiverXhr.open('GET', 'http://localhost:8081/chunks', true); // Update the URL to match the receiver server address
+            receiverXhr.onload = function() {
+                if (receiverXhr.status === 200) {
+                    var chunks = JSON.parse(receiverXhr.responseText);
+                    displayChunks(chunks);
+                }
+            };
+            receiverXhr.send();
+        }
+
+        function displayChunks(chunks) {
+            var receiverChunks = document.getElementById('receiverChunks');
+            receiverChunks.innerHTML = '';
+
+            chunks.forEach(function(chunk) {
+                var chunkDiv = document.createElement('div');
+                chunkDiv.textContent = chunk;
+                receiverChunks.appendChild(chunkDiv);
+            });
+        }
+
+        setInterval(pollReceiverChunks, 1000); // Poll for receiver chunks every second
+    </script>
+</body>
+</html>
